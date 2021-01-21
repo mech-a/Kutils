@@ -1,2 +1,2 @@
-# TwitterInactivityCheck
-A Twitter account inactivity checker with data reporting through Google API and pure text files
+# Kutils
+An assortment of scripts to manage data important to K-pop communities, including a fansite activity checker and YouTube dead link checker, with Google Sheets integration.
