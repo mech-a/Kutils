@@ -18,7 +18,7 @@ EX USAGE
 Detailed usage
   > py fansites.py -f [filepath with forward slashes] -mo [inactivity cutoff in number of months]"
     Examples     
-      > py fansites.py -f 'c:/users/mecha/desktop/i love red velvet/fansites.txt' -mo 12
+      > py fansites.py -f 'c:/users/mecha/desktop/i love red velvet/fansites.txt' -mo 238
         Use single-quotes when surrounding a filepath (absolute or relative) 
         that has spaces in it.
       > py fansites.py -f /resources/redvelvetfansites.txt
@@ -46,19 +46,19 @@ import time
 import sys
 # import os
 from pathlib import Path
-import src.sheets.sheetfunctions as shf
+import kutils.scripts.sheetfunctions as shf
 
 # REMOVE THIS LINE IF YOU ARE NOT A DEVELOPER! THE SCRIPT WILL NOT RUN OTHERWISE
 import src.private.credentials as c, src.private.testdata as t
 
 # --- USER CONSTANTS ----------------------------------------------------------
 
-# FILL THESE IN WITH YOUR OWN KEYS/SECRETS
+# FILL THESE IN WITH YOUR OWN TWITTER KEYS/SECRETS
 # TODO serialize this using pickle this is too crude
-api_key = "" or c.twitter_api_key
-api_secret = "" or c.twitter_api_key_secret
-access_tkn_key = "" or c.twitter_access_token
-access_tkn_secret = "" or c.twitter_access_token_secret
+api_key = ""
+api_secret = ""
+access_tkn_key = ""
+access_tkn_secret = ""
 
 # change this number to change the default number of standard months of inactivity needed to deem account inactive;
 # this is used when no month argument is passed in
@@ -70,12 +70,15 @@ fansites_comment_character = '#'
 
 
 # default google sheet ID to read from
-sheet_id = '' or t.testsheet_id
-# default ranges on Google Sheet ID to read from (see *INSERT GOOGLE SHEETS API V4 LINK)
+# RV Fansite sheet
+sheet_id = '18UdgCmsV2AISuM47wVJ1-w2jRrjWlFP_xiKc2EcBUV4'
+# default ranges on Google Sheet ID to read from (see *INSERT GOOGLE SHEETS API V4 LINK*)
 # sheet_ranges = ['{NAME OF SHEET}!{RANGE OF CELLS}' ...]
 # sheet_ranges = ['Irene!C:C', ...]
-sheet_ranges = [] or t.testrange
-#
+sheet_ranges = ['Irene!C:C', 'Seulgi!C:C', 'Wendy!C:C', 'Joy!C:C', 'Yeri!C:C', 'Group / Multi!C:C']
+# your google api key
+# TODO centralize under service accounts
+google_api_key = ''
 
 # TODO implement developer bypass or make new git branch
 debug = False
@@ -88,8 +91,8 @@ api = twitter.Api(consumer_key=api_key,
                   access_token_key=access_tkn_key,
                   access_token_secret=access_tkn_secret)
 # developer override here
-using_spreadsheet = True
-use_sleep = True
+using_spreadsheet = False
+use_sleep = False
 
 
 def handle_file_path(arg):
@@ -107,7 +110,7 @@ def handle_file_path(arg):
 
 def handle_time(arg):
     # using standard months. clean up time handling
-    return float(arg) * 31 * 24 * 60 * 60
+    return arg * 31 * 24 * 60 * 60
 
 def handle_spreadsheet():
     return True
@@ -145,7 +148,7 @@ if not using_spreadsheet:
             user_dict[line] = "active"
     f.close()
 else:
-    usernames = shf.get_twitter_usernames_from_sheet(sheet_id, ranges=sheet_ranges)
+    usernames = shf.get_twitter_usernames_from_sheet(sheet_id, ranges=sheet_ranges, key=google_api_key)
     for username in usernames:
         user_dict[username] = 'active'
 
