@@ -1,11 +1,9 @@
 from googleapiclient.discovery import build
 from pprint import pprint
-import src.private.credentials as c, src.private.testdata as t
+
 # ---
 # TODO use service accts
-google_key = 'AIzaSyAYR8qmtlJz66SNOzCsmdo7rFFvg7tT9YE' or c.google_api_key
-rv_spreadsheet_id = '18UdgCmsV2AISuM47wVJ1-w2jRrjWlFP_xiKc2EcBUV4' or t.testsheet_id
-fansite_ranges = ['Irene!C:C', 'Seulgi!C:C', 'Wendy!C:C', 'Joy!C:C', 'Yeri!C:C', 'Group / Multi!C:C'] or t.testrange
+google_key = ''
 # ---
 
 
@@ -45,7 +43,8 @@ def extract_url_from_hyperlinks(hyperlinks):
     for sheet in hyperlinks['sheets']:
         for e in sheet['data'][0]['rowData']:
             # filters for {}, represents any non-hyperlinked line
-            if e:
+            # checks if we can access hyperlink
+            if e and 'hyperlink' in e['values'][0]:
                 urls.append(e['values'][0]['hyperlink'])
     return urls
 

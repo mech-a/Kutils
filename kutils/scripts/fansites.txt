@@ -1,5 +1,0 @@
-# fansites.txt
-# Note that you can use the character # as the first character in a line to ignore a twitter @
-# Note that you should NOT include the @ symbol in the usernames
-warmblue0221
-5redvelvet
