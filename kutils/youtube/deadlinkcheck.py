@@ -13,7 +13,7 @@ TODO: playlist handling, double hyperlink cells, better text cleaning (keyword l
 """
 import requests
 from pprint import pprint
-from sheetfunctions import extract_url_from_hyperlinks, fetch_cell_hyperlinks
+from kutils.sheets.sheetfunctions import extract_url_from_hyperlinks, fetch_cell_hyperlinks
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 # https://python-forum.io/Thread-How-to-check-if-video-has-been-deleted-or-removed-in-youtube-using-python
