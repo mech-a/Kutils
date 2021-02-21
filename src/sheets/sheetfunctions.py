@@ -1,5 +1,4 @@
 from googleapiclient.discovery import build
-from pprint import pprint
 
 # ---
 # TODO use service accts
@@ -49,4 +48,3 @@ def extract_url_from_hyperlinks(hyperlinks):
     return urls
 
 
-#pprint(get_twitter_usernames_from_sheet(rv_spreadsheet_id, fansite_ranges))
