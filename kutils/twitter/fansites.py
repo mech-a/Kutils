@@ -86,6 +86,7 @@ api = twitter.Api(consumer_key=api_key,
                   access_token_secret=access_tkn_secret)
 
 g_scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+# TODO remove credentials and references from main branch of kutils
 g_credentials = service_account.Credentials.from_service_account_file("rvcord_credentials.json", scopes=g_scopes)
 # developer override here
 using_spreadsheet = False
