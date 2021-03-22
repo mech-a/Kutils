@@ -47,4 +47,15 @@ def extract_url_from_hyperlinks(hyperlinks):
                 urls.append(e['values'][0]['hyperlink'])
     return urls
 
+# import kutils.sheets
+# print(kutils.sheets.x)
+
+
+# def verify(r, c, pipeline):
+#
+#
+# class pipeline :
+#     ds1, ds2
+#     spreadsheet_id
+#     youtube_keys
 
