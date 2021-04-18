@@ -40,23 +40,35 @@ PLANNED FEATURES: Better spreadsheet handling (print out sheet and cell location
 @version: 0.0.4:mbf
 ~~ Made with love for RVCord, https://discord.gg/redvelvet ~~
 """
+from urllib.parse import urlparse
 
 import twitter
 import time
 import sys
-# import os
+import os
 from pathlib import Path
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from kutils.sheets.sheetfunctions import fetch_cell_hyperlinks, get_cells, Cell
+from tqdm import tqdm
 
 # --- USER CONSTANTS ----------------------------------------------------------
 
 # FILL THESE IN WITH YOUR OWN TWITTER KEYS/SECRETS
 # TODO serialize this using pickle
-api_key = ""
-api_secret = ""
-access_tkn_key = ""
-access_tkn_secret = ""
+from kutils.utils import get_default_credentials, get_twitter_credentials
+
+# api_key = ""
+# api_secret = ""
+# access_tkn_key = ""
+# access_tkn_secret = ""
+
+twt_creds = get_twitter_credentials()
+
+api_key = twt_creds['api_key']
+api_secret = twt_creds['api_secret']
+access_tkn_key = twt_creds['access_tkn_key']
+access_tkn_secret = twt_creds['access_tkn_secret']
 
 # change this number to change the default number of standard months of inactivity needed to deem account inactive;
 # this is used when no month argument is passed in
@@ -86,65 +98,36 @@ api = twitter.Api(consumer_key=api_key,
                   access_token_secret=access_tkn_secret)
 
 g_scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-g_credentials = service_account.Credentials.from_service_account_file("rvcord_credentials.json", scopes=g_scopes)
+#g_credentials = service_account.Credentials.from_service_account_file("rvcord_credentials.json", scopes=g_scopes)
+g_credentials = get_default_credentials()
+sheets = build('sheets', "v4", credentials=g_credentials)
+
 # developer override here
 using_spreadsheet = False
-use_sleep = False
 
 
-# ---- TWITTER FILE -----
-# TODO use service accts
-
-
-def fetch_cell_hyperlinks(service, spreadsheet_id, ranges):
-    # TODO cite stackoverflow
-    result = service.spreadsheets().get(
-        spreadsheetId=spreadsheet_id,
-        ranges=ranges,
-        fields="sheets/data/rowData/values/hyperlink"
-    ).execute()
-    return result
-
-
-def get_twitter_usernames_from_sheet(spreadsheet_id, ranges, credentials):
-    service = build('sheets', 'v4', credentials=credentials)
-    hyperlinks = fetch_cell_hyperlinks(service, spreadsheet_id, ranges)
-    urls = extract_url_from_hyperlinks(hyperlinks)
-    usernames = []
-    for url in urls:
-        # TODO see if twitter api can handle username from url
-        # TODO understand why this didn't work in a function
-        # from last occurence of slash
-        raw_username = url[url.rfind('/') + 1:]
-        # remove queries
-        if '?' in raw_username:
-            username = raw_username[:raw_username.find('?')]
-            usernames.append(username)
+def get_twitter_id_to_cells(service, sheet_id: str, sheet_ranges: list) -> dict:
+    def get_twitter_id_from_url(url: str) -> str:
+        url_path = urlparse(url)[2]
+        raw_username = url_path[1:]
+        if '/' in raw_username:
+            un = raw_username[:raw_username.find('/')]
         else:
-            usernames.append(raw_username)
-    return usernames
+            un = raw_username
+        return un
 
-
-def extract_url_from_hyperlinks(hyperlinks):
-    urls = []
-    # TODO switch to while loop and return dictionary such that we can track urls to their sheet position
-    #  (or, perhaps use nested lists)
-    for sheet in hyperlinks['sheets']:
-        for e in sheet['data'][0]['rowData']:
-            # filters for {}, represents any non-hyperlinked line
-            if e:
-                urls.append(e['values'][0]['hyperlink'])
-    return urls
-
-
-# -------------
+    result = fetch_cell_hyperlinks(sheets, sheet_id, sheet_ranges)
+    cells = get_cells(result)
+    twitter_to_cell = {}
+    for c in cells:
+        twt_id = get_twitter_id_from_url(c.get_url())
+        twitter_to_cell[twt_id] = c
+    return twitter_to_cell
 
 
 def handle_file_path(arg):
     # TODO implement os-agnostic project root file handling, see https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     # "'c:/expecting spaces/'" -> "c:/expecting spaces/"
-
-
     # py fansites.py 'c:/users/ My Documents'
     if arg[0] == "'" and arg[-1] == "'":
         arg = arg[1:-1]
@@ -193,26 +176,46 @@ if not using_spreadsheet:
     for line in f:
         # allow for comments in fansites.txt
         if not line[0] == fansites_comment_character:
-            user_dict[line] = "active"
+            user_dict[line] = "user"
     f.close()
 else:
-    usernames = get_twitter_usernames_from_sheet(sheet_id, ranges=sheet_ranges, credentials=g_credentials)
-    for username in usernames:
-        user_dict[username] = 'active'
+    user_dict = get_twitter_id_to_cells(sheets, sheet_id, sheet_ranges)
 
-for user in user_dict:
+inactive_users = {}
+errored_users_msgs = []
+
+for user in tqdm(user_dict, desc='Progress on Twitter Users'):
     timeline = None
     try:
         timeline = api.GetUserTimeline(screen_name=user, count=1)
     except twitter.TwitterError:
-        print(user, 'has a TwitterError')
+        if type(user_dict[user]) is Cell:
+            msg = f"{user} (at {user_dict[user].__str__()}) has a TwitterError (likely private)"
+        else:
+            msg = f"{user} has a TwitterError (likely private)"
+        errored_users_msgs.append(msg)
         continue
     if timeline:
         last_tweet_time = timeline[0].created_at_in_seconds
         dt_seconds = curr_time - last_tweet_time
         # TODO add multiple tweets to confirm activity, need to be images/rt w/ images
         if dt_seconds > time_cutoff:
-            user_dict[user] = "inactive"
-            print(user, "is inactive")
+            inactive_users[user] = user_dict[user]
     else:
-        print(user, 'couldn\'t be scanned')
+        if type(user_dict[user]) is Cell:
+            msg = f"{user} (at {user_dict[user].__str__()}) couldn't be scanned"
+        else:
+            msg = f"{user} couldn't be scanned"
+        errored_users_msgs.append(msg)
+
+for msg in errored_users_msgs:
+    print(msg)
+
+print('------------------------------')
+
+for user in inactive_users:
+    if type(inactive_users[user]) is Cell:
+        msg = f'{user} (at {inactive_users[user].__str__()}) is inactive'
+    else:
+        msg = f'{user} is inactive'
+    print(msg)

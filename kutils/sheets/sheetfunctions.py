@@ -1,6 +1,9 @@
 from googleapiclient.discovery import build
 
+from kutils.utils import get_column_alphabetical_index_from_zero_indexed_num
+
 google_key = ''
+
 
 class Cell:
     sheet = None
@@ -22,53 +25,22 @@ class Cell:
 
 
 def fetch_cell_hyperlinks(service, spreadsheet_id, ranges):
-    # TODO cite stackoverflow
+    fields = "sheets/properties/title,sheets/data/rowData/values/hyperlink,sheets/data/startRow,sheets/data/startColumn"
+    return get_resource(service, spreadsheet_id, ranges, fields)
+
+
+def get_resource(service, spreadsheet_id: str, ranges: list, fields: str):
     result = service.spreadsheets().get(
         spreadsheetId=spreadsheet_id,
         ranges=ranges,
-        fields="sheets/properties/title,sheets/data/rowData/values/hyperlink,sheets/data/startRow,sheets/data/startColumn"
+        fields=fields
     ).execute()
     return result
 
 
-def get_twitter_usernames_from_sheet(spreadsheet_id, ranges, key=google_key):
-    service = build('sheets', 'v4', developerKey=key)
-    hyperlinks = fetch_cell_hyperlinks(service, spreadsheet_id, ranges)
-    urls = extract_url_from_hyperlinks(hyperlinks)
-    usernames = []
-    for url in urls:
-        # TODO see if twitter api can handle username from url
-        # TODO understand why this didn't work in a function
-        # from last occurence of slash
-        raw_username = url[url.rfind('/') + 1:]
-        # remove queries
-        if '?' in raw_username:
-            username = raw_username[:raw_username.find('?')]
-            usernames.append(username)
-        else:
-            usernames.append(raw_username)
-    return usernames
-
-
-def extract_url_from_hyperlinks(hyperlinks):
+def get_cells(result) -> list:
     """
-    DEFUNCT
-    """
-    urls = []
-    # TODO switch to while loop and return dictionary such that we can track urls to their sheet position
-    #  (or, perhaps use nested lists)
-    for sheet in hyperlinks['sheets']:
-        for e in sheet['data'][0]['rowData']:
-            # filters for {}, represents any non-hyperlinked line
-            # checks if we can access hyperlink
-            if e and 'hyperlink' in e['values'][0]:
-                urls.append(e['values'][0]['hyperlink'])
-    return urls
-
-
-def get_cells(result):
-    """
-    Takes in result from fetch_cell_hyperlinks
+    Extract cells from Sheet response of Google Sheets API V4
     """
     cells = []
     for sheet in result['sheets']:
@@ -86,18 +58,40 @@ def get_cells(result):
     return cells
 
 
-def get_column_alphabetical_index_from_zero_indexed_num(col_idx: int):
-    num_letters_alphabet = 26
-    def get_letter_from_zero_indexed_idx(idx: int):
-        ascii_start = 65
-        return chr(ascii_start + idx)
-    prefix_str = ''
-    if col_idx < num_letters_alphabet:
-        return get_letter_from_zero_indexed_idx(col_idx)
-    last_char = get_letter_from_zero_indexed_idx(col_idx % num_letters_alphabet)
-    prefix_str = get_column_alphabetical_index_from_zero_indexed_num(col_idx // num_letters_alphabet)
-    return prefix_str + last_char
 
-
-def get_sheet_name_from_range(rangestr: str):
-    return rangestr[:rangestr.find('!')]
+# def get_sheet_name_from_range(rangestr: str) -> str:
+#     return rangestr[:rangestr.find('!')]
+#
+#
+# def get_twitter_usernames_from_sheet(spreadsheet_id, ranges, key=google_key):
+#     """Deprecated"""
+#     service = build('sheets', 'v4', developerKey=key)
+#     hyperlinks = fetch_cell_hyperlinks(service, spreadsheet_id, ranges)
+#     urls = extract_url_from_hyperlinks(hyperlinks)
+#     usernames = []
+#     for url in urls:
+#         # TODO see if twitter api can handle username from url
+#         # TODO understand why this didn't work in a function
+#         # from last occurence of slash
+#         raw_username = url[url.rfind('/') + 1:]
+#         # remove queries
+#         if '?' in raw_username:
+#             username = raw_username[:raw_username.find('?')]
+#             usernames.append(username)
+#         else:
+#             usernames.append(raw_username)
+#     return usernames
+#
+#
+# def extract_url_from_hyperlinks(hyperlinks) -> list:
+#     """Deprecated"""
+#     urls = []
+#     # TODO switch to while loop and return dictionary such that we can track urls to their sheet position
+#     #  (or, perhaps use nested lists)
+#     for sheet in hyperlinks['sheets']:
+#         for e in sheet['data'][0]['rowData']:
+#             # filters for {}, represents any non-hyperlinked line
+#             # checks if we can access hyperlink
+#             if e and 'hyperlink' in e['values'][0]:
+#                 urls.append(e['values'][0]['hyperlink'])
+#     return urls

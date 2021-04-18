@@ -3,4 +3,9 @@ An assortment of scripts to manage data important to K-pop communities, includin
 
 In early development stages, not packaged for distribution.
 
+## Developer Setup
+To set up Kutils on a local system, it requires a system environment variable named *KUTILS_PVT* pointing to a folder 
+that contains your auth tokens. Specifically, a JSON file containing a service account login with Sheets v4 and YouTube 
+Data v3 authorization named *tester-google-credentials.json* must be present in the folder at *KUTILS_PVT*.  
+
 Made with love for the [Red Velvet Discord (RVCord)](https://discord.gg/redvelvet)
