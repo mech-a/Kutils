@@ -11,11 +11,13 @@ v: 0.0.4:mbf
 
 TODO: playlist handling, double hyperlink cells, better text cleaning (keyword list is bad), handle time_continue flag (currently makes id == '')
 """
+import googleapiclient
 import requests
 from pprint import pprint
-from kutils.sheets.sheetfunctions import extract_url_from_hyperlinks, fetch_cell_hyperlinks
+from kutils.sheets.sheetfunctions import get_cells, fetch_cell_hyperlinks
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from tqdm import tqdm
 # https://python-forum.io/Thread-How-to-check-if-video-has-been-deleted-or-removed-in-youtube-using-python
 
 delete_keywords = ['&feature', '&list', '&index', '&lc', '&ab_channel', '&t']
@@ -69,28 +71,63 @@ def find_url_idx_by_str(str):
             return i
 
 sheet_id = '1FKsk1QwLYHNqeW9l0Y9jFCacWe6KkPj9QMgcKt4ZaTQ'
+# TODO give individual columns
+# sheet_ranges = ['Discography!F:F', 'Solo/Subunit Discography!E:E',
+#                 'Music Shows!C:K', 'Live Performances!D:K', 'Solo/Subunit Live Performances!C:C',
+#                 'Solo/Subunit Live Performances!F:F', 'Livestreams!D:D', 'Variety!D:D', 'Variety!D:H',
+#                 'Radio Shows!D:D', 'Radio Shows!H:H', 'Misc!C:C', 'Misc!E:E'
+#                 ]
+
 sheet_ranges = ['Discography!F:F', 'Solo/Subunit Discography!E:E',
-                'Music Shows!C:K', 'Live Performances!D:K', 'Solo/Subunit Live Performances!C:C',
-                'Solo/Subunit Live Performances!F:F', 'Livestreams!D:D', 'Variety!D:D', 'Variety!D:H',
+                'Music Shows!C:C', 'Live Performances!D:D', 'Solo/Subunit Live Performances!C:C',
+                'Solo/Subunit Live Performances!F:F', 'Livestreams!D:D', 'Variety!D:D',
                 'Radio Shows!D:D', 'Radio Shows!H:H', 'Misc!C:C', 'Misc!E:E'
                 ]
 
+# sheet_ranges = ['Live Performances!D10:D18']
+
 g_scopes = ['https://www.googleapis.com/auth/youtube.readonly', "https://www.googleapis.com/auth/spreadsheets.readonly"]
-g_credentials = service_account.Credentials.from_service_account_file("rvcord_credentials.json", scopes=g_scopes)
+g_credentials = service_account.Credentials.from_service_account_file("creds.json", scopes=g_scopes)
 youtube = build('youtube', "v3", credentials=g_credentials)
 sheets = build('sheets', "v4", credentials=g_credentials)
 cell_hyperlinks = fetch_cell_hyperlinks(sheets, sheet_id, sheet_ranges)
-urls = extract_url_from_hyperlinks(cell_hyperlinks)
-yt_ids, count_non_yt = extract_youtube_ids_from_urls(urls)
+cells = get_cells(cell_hyperlinks)
 
-num_dead = 0
+# urls = extract_url_from_hyperlinks(cell_hyperlinks)
+# yt_ids, count_non_yt = extract_youtube_ids_from_urls(urls)
 
-for an_id in yt_ids:
-    request = youtube.videos().list(part="status,contentDetails", id=an_id)
-    response = request.execute()
-    items = response['items']
-    if not len(items) and an_id:
-        num_dead += 1
-        print(an_id, "is dead")
+# easter egg! just like the game
+dead_cells = []
 
-print("FINISHED\n", num_dead, "links dead in total")
+# add a progress bar
+for c in tqdm(cells, desc='Progress on Cells'):
+    urls = [c.get_url()]
+    ids, _ = extract_youtube_ids_from_urls(urls)
+    for an_id in ids:
+        request = youtube.videos().list(part="status,contentDetails", id=an_id)
+        try:
+            response = request.execute()
+        except googleapiclient.errors.HttpError:
+            print(c, c.get_url())
+            continue
+        items = response['items']
+        if not len(items) and an_id:
+            dead_cells.append(c)
+
+
+# for an_id in yt_ids:
+#     request = youtube.videos().list(part="status,contentDetails", id=an_id)
+#     response = request.execute()
+#     items = response['items']
+#     if not len(items) and an_id:
+#         num_dead += 1
+#         print(an_id, "is dead")
+#
+for dc in dead_cells:
+    print(dc, "contains a dead link")
+
+print("FINISHED\n", len(dead_cells), "links dead in total")
+
+
+
+# todo construct a dictionary w row num : url, split queries
