@@ -20,7 +20,7 @@ from kutils.sheets.sheetfunctions import get_cells, fetch_cell_hyperlinks
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from tqdm import tqdm
-from filtering import extract_youtube_ids_from_urls
+from kutils.youtube.filtering import extract_youtube_ids_from_urls
 from pathlib import Path
 
 sheet_id = '1FKsk1QwLYHNqeW9l0Y9jFCacWe6KkPj9QMgcKt4ZaTQ'

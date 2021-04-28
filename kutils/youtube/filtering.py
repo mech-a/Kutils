@@ -1,6 +1,8 @@
 delete_keywords = ['&feature', '&list', '&index', '&lc', '&ab_channel', '&t']
 
 
+# TODO redo youtube ID extraction with urlparse
+
 def extract_youtube_ids_from_urls(urls):
     ids = []
     count_non_yt_vid = 0
@@ -12,10 +14,6 @@ def extract_youtube_ids_from_urls(urls):
         for kw in delete_keywords:
             if kw in url:
                 url = url[:url.find(kw)]
-        # if '&feature' in url:
-        #     url = url[:url.find('&feature')]
-        # if '&feature' in url:
-        #     url = url[:url.find('&feature')]
 
         if is_link_shortened(url) and url.rfind('?') > 0:
             id = url[url.rfind('/') + 1:url.rfind('?')]
@@ -33,13 +31,13 @@ def extract_youtube_ids_from_urls(urls):
     return ids, count_non_yt_vid
 
 
-def is_youtube_video_url(url):
-    # wow aint this one line of code. do better clean url
+def is_youtube_video_url(url: str) -> bool:
+    # TODO better cleanurl
     return ('playlist' not in url) and ('youtube.com' in url or 'youtu.be' in url) and ('results' not in url)
 
 
-def is_link_shortened(yt_url):
-    # not necessarily the best b/c of double youtube phenomenon (youtube.com...&feature=youtu.be
+def is_link_shortened(yt_url: str) -> bool:
+    # not necessarily the best b/c of double youtube phenomenon (youtube.com...&feature=youtu.be)
     return 'youtu.be' in yt_url
 
 # def find_url_idx_by_str(str):
