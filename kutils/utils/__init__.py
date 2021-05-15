@@ -24,7 +24,7 @@ def get_column_alphabetical_index_from_zero_indexed_num(col_idx: int) -> str:
     return prefix_str + last_char
 
 
-def get_credentials(scopes: list):
+def get_tester_credentials(scopes: list):
     credentials_file = Path(os.environ['KUTILSPVT']) / 'tester-google-credentials.json'
     if not credentials_file.is_file():
         print('tester-google-credentials.json is not a file')
@@ -36,7 +36,7 @@ def get_credentials(scopes: list):
 def get_default_credentials():
     g_scopes = ['https://www.googleapis.com/auth/youtube.readonly',
                 "https://www.googleapis.com/auth/spreadsheets.readonly"]
-    return get_credentials(g_scopes)
+    return get_tester_credentials(g_scopes)
 
 
 def get_twitter_credentials():
